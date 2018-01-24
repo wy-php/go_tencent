@@ -1,12 +1,10 @@
 #! /bin/bash
 echo "deploy..."
 gox -osarch="linux/amd64"
-sleep 5
 fuser -cfu tda_linux_amd64
+sleep 2
 scp -r tda_linux_amd64 live:/home/live/go-api
 #ssh live "/home/live/go-api/pro_linux_amd64"
 #scp -r txApi.go live:/home/live/go-api
-sleep 2
 ssh live "/home/live/go-api/deploy"
-sleep 2
 echo "done!"

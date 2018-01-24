@@ -63,12 +63,6 @@ func (app *App) Initialize() {
       entityId := newMsg.Data["entity_id"].(string)
       sn := strings.Split(msg.Topic(), "/")[4]
       parentDin, token := "", ""
-      // 多个设备是同一种类型的时候使用
-      deviceType := newMsg.Data["device_type"]
-      if deviceType == nil {
-        log.Error("[MQTT] The data['device_type' is nil]")
-        return
-      }
       // 设备注册, sn和entityId一致则是网关注册
       if sn == entityId {
         token = handler.TxLogin()["token"].(string)
@@ -77,6 +71,12 @@ func (app *App) Initialize() {
         model.DB.Find(&model.Device{Sn: sn}).Pluck("parent_din", &arrs)
         parentDin = arrs[0]
         token = handler.GetToken(parentDin)
+      }
+      // 多个设备是同一种类型的时候使用
+      deviceType := newMsg.Data["device_type"]
+      if deviceType == nil {
+        log.Error("[MQTT] The data['device_type' is nil]")
+        return
       }
       // 将unicode编码转成utf-8
       name := fmt.Sprint(newMsg.Data["friendly_name"].(string))
