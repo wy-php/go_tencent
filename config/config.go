@@ -2,8 +2,35 @@ package config
 
 import (
   "time"
+  "encoding/json"
   "fmt"
+  "io/ioutil"
+  "os"
+  "regexp"
+
+  "tda/app/utils"
 )
+
+var jsonData map[string]interface{}
+
+func initJSON() {
+  bytes, err := ioutil.ReadFile("./config.json")
+  if err != nil {
+    fmt.Println("ReadFile: ", err.Error())
+    os.Exit(-1)
+  }
+
+  configStr := string(bytes[:])
+  reg := regexp.MustCompile(`/\*.*\*/`)
+
+  configStr = reg.ReplaceAllString(configStr, "")
+  bytes = []byte(configStr)
+
+  if err := json.Unmarshal(bytes, &jsonData); err != nil {
+    fmt.Println("invalid config: ", err.Error())
+    os.Exit(-1)
+  }
+}
 
 const (
   RedisHost         = "localhost"
@@ -41,56 +68,15 @@ type MqttConfig struct {
 }
 
 func GetConfig() {
-  DB = &DBConfig{
-    Dialect:  "mysql",
-    Username: "root",
-//    Password: "Uo0BhmWldZBTBjgP",
-    Password: "",
-    Name:     "tda",
-    Charset:  "utf8",
-  }
-  Redis = &RedisConfig{
-    Addr:         "localhost:6379",
-    Password:     "",
-    DB:           1,
-    DialTimeout:  10 * time.Second,
-    ReadTimeout:  30 * time.Second,
-    WriteTimeout: 30 * time.Second,
-    PoolSize:     10,
-    PoolTimeout:  30 * time.Second,
-  }
-  Mqtt = &MqttConfig{
-    Broker:   "tcp://123.57.139.200:1883",
-    ClientId: "GoApi_" + fmt.Sprintf("%d", time.Now().Unix()),
-    Username: "polyhome",
-    Password: "123",
-  }
+  initJSON()
+  var dbConfig DBConfig
+  var redis RedisConfig
+  var mqtt MqttConfig
+  utils.SetStructByJSON(&dbConfig, jsonData["database"].(map[string]interface{}))
+  utils.SetStructByJSON(&redis, jsonData["redis"].(map[string]interface{}))
+  utils.SetStructByJSON(&mqtt, jsonData["mqtt"].(map[string]interface{}))
+  DB = &dbConfig
+  Redis = &redis
+  Mqtt = &mqtt
 }
 
-//func GetConfig() *Config {
-//  return &Config{
-//    DB: &DBConfig{
-//      Dialect:  "mysql",
-//      Username: "root",
-//      Password: "",
-//      Name:     "tda",
-//      Charset:  "utf8",
-//    },
-//    Redis: &RedisConfig{
-//      Addr:         "localhost:6379",
-//      Password:     "",
-//      DB:           1,
-//      DialTimeout:  10 * time.Second,
-//      ReadTimeout:  30 * time.Second,
-//      WriteTimeout: 30 * time.Second,
-//      PoolSize:     10,
-//      PoolTimeout:  30 * time.Second,
-//    },
-//    Mqtt: &MqttConfig{
-//      Broker:   "tcp://123.57.139.200:1883",
-//      ClientId: "GoApi_" + fmt.Sprintf("%d", time.Now().Unix()),
-//      Username: "polyhome",
-//      Password: "123",
-//    },
-//  }
-//}

@@ -4,6 +4,7 @@ import (
   "tda/config"
 
   "fmt"
+  "time"
  // "strings"
  // "encoding/json"
 
@@ -47,11 +48,7 @@ func initRedis() {
     Addr:           config.Redis.Addr,
     Password:       config.Redis.Password,
     DB:             config.Redis.DB,
-    DialTimeout:    config.Redis.DialTimeout,
-    ReadTimeout:    config.Redis.ReadTimeout,
-    WriteTimeout:   config.Redis.WriteTimeout,
     PoolSize:       config.Redis.PoolSize,
-    PoolTimeout:    config.Redis.PoolTimeout,
   })
 
   _, redisErr := RedisClient.Ping().Result()
@@ -65,10 +62,11 @@ func initRedis() {
 
 func initMqtt(f mqtt.MessageHandler) {
   log.Info("connect mqtt ...")
+  clientId := "GoApi_" + fmt.Sprintf("%d", time.Now().Unix())
   // mqtt server
   ops := mqtt.NewClientOptions()
   ops.AddBroker(config.Mqtt.Broker)
-  ops.SetClientID(config.Mqtt.ClientId)
+  ops.SetClientID(clientId)
   ops.SetUsername(config.Mqtt.Username)
   ops.SetPassword(config.Mqtt.Password)
 
