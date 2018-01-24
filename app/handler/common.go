@@ -41,22 +41,18 @@ const (
    PolyPanel4        = 20005
    BinarySensor      = 20006
    Cover             = 20007
-//   Sensor            = 20008
- //  PolyDoorSensor    = 20006
    PolyPirSensor     = 20008
    LightPointId      = "1000202"
    SwitchPointId     = "1000204"
    CoverPointId      = "1000207"
    BinarySensorPointId     = "1000206"
    PolyPanel4PointId = "1000205"
- //  SensorPointId     = "1000206"
    LightText         = "light"
    SwitchText        = "switch"
    CoverText         = "cover"
    BinarySensorText  = "binary_sensor"
    PolyPirSensorText = "polypirsensor"
    PolyPanel4Text    = "polypanel4"
-  // SensorText        = "sensor"
    Offline           = "unavailable"
 )
 
@@ -65,7 +61,6 @@ var Plugins = map[uint64]interface{}{
   Switch: SwitchText,
   Cover: CoverText,
   BinarySensor: BinarySensorText,
-//  Sensor: SensorText,
 }
 
 var Plugins1 = map[string]interface{}{
