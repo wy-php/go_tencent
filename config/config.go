@@ -37,9 +37,11 @@ const (
   RedisPort         = "6379"
 )
 
-var DB    *DBConfig;
-var Redis *RedisConfig;
-var Mqtt  *MqttConfig;
+var(
+  DB    *DBConfig
+  Redis *RedisConfig
+  Mqtt  *MqttConfig
+)
 
 type DBConfig struct {
   Dialect  string
@@ -69,9 +71,11 @@ type MqttConfig struct {
 
 func GetConfig() {
   initJSON()
-  var dbConfig DBConfig
-  var redis RedisConfig
-  var mqtt MqttConfig
+  var (
+    dbConfig DBConfig
+    redis RedisConfig
+    mqtt MqttConfig
+  )
   utils.SetStructByJSON(&dbConfig, jsonData["database"].(map[string]interface{}))
   utils.SetStructByJSON(&redis, jsonData["redis"].(map[string]interface{}))
   utils.SetStructByJSON(&mqtt, jsonData["mqtt"].(map[string]interface{}))

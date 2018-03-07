@@ -21,9 +21,11 @@ const (
 )
 
 // 声明相关client全局变量
-var RedisClient *redis.Client;
-var MqttClient mqtt.Client;
-var DB *gorm.DB;
+var (
+  RedisClient *redis.Client
+  MqttClient mqtt.Client
+  DB *gorm.DB
+)
 
 func initDB() {
   // connect mysql
