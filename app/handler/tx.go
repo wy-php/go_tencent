@@ -11,26 +11,67 @@ import (
   "io/ioutil"
 
   log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
 const (
   BaseUrl = "https://api.jia.qq.com/iotd/"
 )
 
-func TxLogin() map[string]interface{} {
+func TxgGetSig() map[string]interface{} {
   log.WithFields(log.Fields{
     "appId": AppId,
     "appKey": AppKey,
-  }).Info("[TXAPI] Call tx login api.")
+  }).Info("[TXAPI] Call tx getSig api.")
 
+  result := map[string]interface{}{
+    "random": 0,
+    "sig": "",
+  }
+  getUrl := BaseUrl + "sp/getLoginParam?" + "skey=" + AppKey
+  res, err := http.Get(getUrl)
+
+  defer res.Body.Close()
+
+  if err != nil {
+    log.WithFields(log.Fields{
+      "err": err,
+    }).Fatal("[TXAPI] The HTTP request failed with get sig")
+  } else {
+    data, err :=ioutil.ReadAll(res.Body)
+    if err != nil {
+      log.Error("[TXAPI] tx get sig api error!")
+    }
+    if res.StatusCode < 200 || res.StatusCode > 299 {
+      log.Error("[TXAPI] api server error")
+      return result
+    }
+    random := formatData(data, "random").(float64)
+    result["random"] = int64(random)
+    timeNum := formatData(data, "sig")
+    result["sig"] = timeNum.(string)
+  }
+  return result
+}
+
+func TxLogin() map[string]interface{} {
+  getData := TxgGetSig()
+  random := strconv.FormatInt(getData["random"].(int64), 10)
+  sig := getData["sig"].(string)
   timestamp := time.Now().Unix() * 1000
   result := map[string]interface{}{
     "token": "",
     "expiryTime": 0,
   }
-  sign := encrypt(AppKey, timestamp , RandNum)
-  url := BaseUrl + "sp/login/?" + "spId=" + strconv.Itoa(AppId) + "&time=" + strconv.Itoa(int(timestamp)) + "&num=" + strconv.Itoa(RandNum) + "&sig=" + sign
-  resp, err := http.Get(url)
+
+  apiUrl := BaseUrl + "sp/login"
+  jsonData := url.Values{}
+  jsonData.Set("appId", strconv.Itoa(AppId))
+  jsonData.Set("time", strconv.Itoa(int(timestamp)))
+  jsonData.Set("num", random)
+  jsonData.Set("sig", sig)
+
+  resp, err := http.PostForm(apiUrl, jsonData)
   if err != nil {
     log.WithFields(log.Fields{
       "err": err,
@@ -44,6 +85,7 @@ func TxLogin() map[string]interface{} {
         log.Error("[TXAPI] api server error")
         return result
       }
+	  fmt.Printf("%s", data)
       token := formatData(data, "token")
       result["token"] = token.(string)
       timeNum, _ := formatData(data, "expiryTime").(float64)
@@ -91,6 +133,7 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
     }).Fatal("[TXAPI] The HTTP request failed with error")
   } else {
     data, err := ioutil.ReadAll(response.Body)
+	fmt.Printf("%s", data)
     din = formatData(data, "din").(string)
     if err != nil {
       log.Error("[TXAPI] Call register api error: ", err)
@@ -156,6 +199,7 @@ func TxDeviceUpdate(token string, dType string, parentDin string, sn string, nam
     }).Fatal("The HTTP request failed with error")
   } else {
     data, _ := ioutil.ReadAll(response.Body)
+    fmt.Printf("%s", data)
     din = formatData(data, "din").(string)
   }
 
@@ -190,6 +234,7 @@ func MessageNotify(token string, din string, dType string, msg string) {
     }).Fatal("The HTTP request failed with error")
   } else {
     data, _ := ioutil.ReadAll(response.Body)
+    fmt.Printf("%s", data)
     log.WithFields(log.Fields{
       "data": string(data),
     }).Info("[TXAPI] Call tx message notify api success!")
@@ -212,7 +257,7 @@ func CallTxApi(){
   // 注册设备
   //gateWay := "dc:a9:04:99:09:64"
   gateWay := "601e5c44a4064d0c9b8e4ef49145ee10"
-  din := TxDeviceRegister(token, "20002", "", gateWay, "智能网关")
+  din := TxDeviceRegister(token, "20002", "0", gateWay, "智能网关")
   log.Info("din:", din)
 
   token = GetToken(din)
@@ -238,8 +283,7 @@ func CallTxApi(){
   metMsg.Set("electricity", "0.5")
   metMsg.Set("power", "100")
   msg := url.Values{}
-  msg.Set("datapointId'", "1000204")
-  msg.Set("switch", "false")
+  msg.Set("switch", "true")
   msg.Set("metering", metMsg.Encode())
   MessageNotify(token, socketDin, "20004", msg.Encode())
 
@@ -250,7 +294,6 @@ func CallTxApi(){
   metMsg.Set("electricity", "0.5")
   metMsg.Set("power", "100")
   msg1 := url.Values{}
-  msg.Set("datapointId'", "1000204")
   msg.Set("switch", "true")
   msg.Set("metering", metMsg1.Encode())
 
@@ -260,7 +303,7 @@ func CallTxApi(){
   cmdErr = cmd.Start()
 
   // 更新设备
-  din = TxDeviceUpdate(token, "20002", "", "polyhome-gateway-001", "智能网关1", din)
+  din = TxDeviceUpdate(token, "20002", "1000210042", "polyhome-gateway-001", "智能网关2", din)
   log.Info("after update din:", din)
 
   if cmdErr != nil {
