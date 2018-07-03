@@ -6,5 +6,5 @@ sleep 2
 scp -r tda_linux_amd64 live@123.57.139.200:/home/live/go_project/go-api
 #ssh live "/home/live/go-api/pro_linux_amd64"
 #scp -r txApi.go live:/home/live/go-api
-ssh live "/home/live/go-api/deploy"
+ssh 123 "/home/live/go_project/go-api/deploy"
 echo "done!"

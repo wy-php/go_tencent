@@ -41,6 +41,7 @@ const (
    Hour              = 60 * Minute
    Day               = 24 * Hour
    Week              = 7  * Day
+   Gateway           = 20002
    Light             = 20003
    Switch            = 20004
    PolyPanel4        = 20005
@@ -52,6 +53,7 @@ const (
    CoverPointId      = "1000207"
    BinarySensorPointId     = "1000206"
    PolyPanel4PointId = "1000205"
+   GatewayText       = "gateway"
    LightText         = "light"
    SwitchText        = "switch"
    CoverText         = "cover"
@@ -72,6 +74,7 @@ var Plugins1 = map[string]interface{}{
   LightText: Light,
   SwitchText: Switch,
   CoverText: Cover,
+  GatewayText: Gateway,
   BinarySensorText: BinarySensor,
   PolyPirSensorText: PolyPirSensor,
   PolyPanel4Text: PolyPanel4,
@@ -83,7 +86,7 @@ func FindDtypeById(entityId string, deviceType string) int {
   prefix := strings.Split(entityId, ".")[0]
   dType := Plugins1[prefix]
 
-  if deviceType == PolyPirSensorText || deviceType == PolyPanel4Text {
+  if deviceType == PolyPirSensorText || deviceType == PolyPanel4Text || deviceType == GatewayText {
     dType = Plugins1[deviceType]
   } else if dType == nil {
     log.Error("Type error")
