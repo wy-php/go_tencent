@@ -25,8 +25,13 @@ import (
 var db = model.DB;
 
 const (
-   AppId             = 10002
-   AppKey            = "1lWbQzboLgv7"
+   AppId             = 17
+   AppKey            = "kIcFF7Cl"
+   SpAppId           = "6023"
+   SpSkey            = "polyhome"
+   Name              = "北京博力恒昌科技有限公司"
+   Desc              = "一家力图改变您的生活方式的智能家居公司。"
+   Url               = "http://123.57.139.200:9090/iotd/ctl/spController"
    RandNum           = 3424901
    RedisKeyPrefix    = "PHA::"
    GateWayTokenKey   = "GATEWAY::TOKEN::"
@@ -232,6 +237,7 @@ func formatResult(result *model.Result) interface{} {
   }
   return params
 }
+
 // 保存控制信息 在上报消息的时候使用
 func saveControlInfo(result *model.Result){
   log.WithFields(log.Fields{

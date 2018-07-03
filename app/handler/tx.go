@@ -18,6 +18,7 @@ const (
   BaseUrl = "https://api.jia.qq.com/iotd/"
 )
 
+//通过appkey获取sig
 func TxgGetSig() map[string]interface{} {
   log.WithFields(log.Fields{
     "appId": AppId,
@@ -54,6 +55,7 @@ func TxgGetSig() map[string]interface{} {
   return result
 }
 
+//用来获取token的
 func TxLogin() map[string]interface{} {
   getData := TxgGetSig()
   random := strconv.FormatInt(getData["random"].(int64), 10)
@@ -97,6 +99,7 @@ func TxLogin() map[string]interface{} {
   return result
 }
 
+//用来注册设备的
 func TxDeviceRegister(token string, dType string, parentDin string, sn string, name string) string {
 
   log.WithFields(log.Fields{
@@ -178,6 +181,7 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
   return din
 }
 
+//用来更新设备信息的
 func TxDeviceUpdate(token string, dType string, parentDin string, sn string, name string, cDin string) string {
   log.WithFields(log.Fields{
     "token": token,
@@ -210,6 +214,7 @@ func TxDeviceUpdate(token string, dType string, parentDin string, sn string, nam
   return din
 }
 
+//用来上报消息到腾讯接口
 func MessageNotify(token string, din string, dType string, msg string) {
 
   log.WithFields(log.Fields{
@@ -242,6 +247,46 @@ func MessageNotify(token string, din string, dType string, msg string) {
 
 }
 
+//注册控制设备请求的时候的uri
+func TxRegisterUri() map[string]interface{}{
+  result := map[string]interface{}{
+    "appId": "",
+    "appKey": "",
+    "msg": "fail",
+  }
+
+  apiUrl := BaseUrl + "sp/register"
+  jsonData := url.Values{}
+  jsonData.Set("spAppId", SpAppId)
+  jsonData.Set("spSkey", SpSkey)
+  jsonData.Set("name", Name)
+  jsonData.Set("desc", Desc)
+  jsonData.Set("spUri", Url)
+
+  resp, err := http.PostForm(apiUrl, jsonData)
+  if err != nil {
+    log.WithFields(log.Fields{
+      "err": err,
+    }).Fatal("[TXAPI] The HTTP request failed with error")
+  } else {
+    data, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+      log.Error("[TXAPI] tx register api error!")
+    }
+    if resp.StatusCode < 200 || resp.StatusCode > 299 {
+      log.Error("[TXAPI] api server error")
+      return result
+    }
+    result["appId"] = formatData(data, "appId")
+    result["appKey"] = formatData(data, "skey")
+    result["msg"] = "success"
+  }
+  log.WithFields(log.Fields{
+    "result": result,
+  }).Info("[TXAPI] Call tx login api success!")
+  return result
+}
+
 func CallTxApi(){
   log.Info("start call tx api...")
   log.Info("--------------------------------------------------------------")
@@ -256,8 +301,8 @@ func CallTxApi(){
 
   // 注册设备
   //gateWay := "dc:a9:04:99:09:64"
-  gateWay := "601e5c44a4064d0c9b8e4ef49145ee10"
-  din := TxDeviceRegister(token, "20002", "0", gateWay, "智能网关")
+  gateWay := "601e5c44a4064d0c9b8e4ef49145ee11"
+  din := TxDeviceRegister(token, "20002", "", gateWay, "智能网关")
   log.Info("din:", din)
 
   token = GetToken(din)

@@ -38,14 +38,13 @@ type State struct {
 }
 
 type Result struct {
+  Token      string `json: "token"`
   Din        string `json: "din"`
   Dtype      uint64 `json: "dType"`
-  Plugin     string `json:"plugin"`
+  //Plugin     string `json:"plugin"`
   ParentDin  string `json: "parentDin"`
   Sn         string `json:"sn"`
   Timestamp  uint64 `json:"timestamp"`
-  Num        int64 `json:"num"`
-  Sig       string `json:"sig"`
   Cmd        map[string]interface{} `json:"cmd"`
 }
 

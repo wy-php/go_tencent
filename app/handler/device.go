@@ -12,45 +12,32 @@ import (
 )
 
 func SpController(w http.ResponseWriter, r *http.Request){
-  r.ParseForm()
+  //r.ParseForm()
 
   log.WithFields(log.Fields{
     "Params": r.Form,
     "Content-type": r.Header.Get("Content-Type"),
   }).Info("Call spContoller api")
 
-  num, _ := strconv.ParseInt(r.Form["num"][0], 10, 64)
-  timestamp, _ := strconv.ParseUint(r.Form["timestamp"][0], 10, 64)
-  dType, _ := strconv.ParseUint(r.Form["dType"][0], 10, 64)
+  token := r.PostFormValue("token")
+  sn := r.PostFormValue("sn")
+  din := r.PostFormValue("din")
+  dType,_ := strconv.ParseUint(r.PostFormValue("dType"), 10, 64)
+  cmds := r.PostFormValue("cmd")
+  timestamp,_ := strconv.ParseUint(r.PostFormValue("timestamp"), 10, 64)
+  parentDin := r.PostFormValue("parentDin")
 
   var cmd map[string]interface{}
-
-  err := json.Unmarshal([]byte(r.Form["cmd"][0]), &cmd)
-
-
-//  var cmd1 map[string]interface{}
-//
-//  err = json.Unmarshal([]byte(r.Form["cmd"][0]), &cmd1)
+  err := json.Unmarshal([]byte(cmds), &cmd)
 
   result1 := new(model.Result)
-  result1.Din = r.Form["din"][0]
+  result1.Token = token
+  result1.Sn = sn
+  result1.Din = din
   result1.Dtype = dType
-  result1.ParentDin = r.Form["parentDin"][0]
-  result1.Sn = r.Form["sn"][0]
-  result1.Timestamp = timestamp
-  result1.Num = num
-  result1.Sig = r.Form["sig"][0]
   result1.Cmd = cmd
-
- // result2 := new(model.Result)
- // result2.Din = r.Form["din"][0]
- // result2.Dtype = dType
- // result2.ParentDin = r.Form["parentDin"][0]
- // result2.Sn = r.Form["sn"][0]
- // result2.Timestamp = timestamp
- // result2.Num = num
- // result2.Sig = r.Form["sig"][0]
- // result2.Cmd = cmd1
+  result1.Timestamp = timestamp
+  result1.ParentDin = parentDin
 
   result := map[string]interface{}{
     "code": 200,
@@ -72,36 +59,51 @@ func SpController(w http.ResponseWriter, r *http.Request){
     }
   }
 
-  sign := encrypt(AppKey, int64(result1.Timestamp), result1.Num)
+  // TODO 暂时不验证签名了
+  //sign := encrypt(AppKey, int64(result1.Timestamp), result1.Num)
+  //
+  //log.WithFields(log.Fields{
+  //  "sign": sign,
+  //  "old_sign": result1.Sig,
+  //  "result1": result1,
+  //}).Info("-----------------sig----------------")
+  //
+  //if sign != result1.Sig {
+  //  result["status"] = "ERROR"
+  //  result["code"] = 400
+  //  result["data"] = map[string]interface{}{
+  //    "timestamp": time.Now().Unix(),
+  //    "msg": "sig is error",
+  //  }
+  //}else{
+  //  // 整理传给主机所需要的数据格式
+  //  reqParams := formatResult(result1)
+  //  // 存储控制信息
+  //  //saveControlInfo(result2)
+  //  newReqParams, _ := json.Marshal(reqParams)
+  //
+  //  device := model.Device{}
+  //
+  //  _ = model.DB.First(&device, model.Device{Din: result1.ParentDin})
+  //
+  //  mqttPubTopic := "/v1/polyhome-ha/host/"+ device.Sn + "/user_id/0/services/"
+  //
+  //  model.MqttClient.Publish(mqttPubTopic, 0, false, newReqParams)
+  //}
 
-  log.WithFields(log.Fields{
-    "sign": sign,
-    "old_sign": result1.Sig,
-    "result1": result1,
-  }).Info("-----------------sig----------------")
+  // 整理传给主机所需要的数据格式
+  reqParams := formatResult(result1)
+  // 存储控制信息
+  //saveControlInfo(result2)
+  newReqParams, _ := json.Marshal(reqParams)
 
-  if sign != result1.Sig {
-    result["status"] = "ERROR"
-    result["code"] = 400
-    result["data"] = map[string]interface{}{
-      "timestamp": time.Now().Unix(),
-      "msg": "sig is error",
-    }
-  }else{
-    // 整理传给主机所需要的数据格式
-    reqParams := formatResult(result1)
-    // 存储控制信息
-    //saveControlInfo(result2)
-    newReqParams, _ := json.Marshal(reqParams)
+  device := model.Device{}
 
-    device := model.Device{}
+  _ = model.DB.First(&device, model.Device{Din: result1.ParentDin})
 
-    _ = model.DB.First(&device, model.Device{Din: result1.ParentDin})
+  mqttPubTopic := "/v1/polyhome-ha/host/"+ device.Sn + "/user_id/0/services/"
 
-    mqttPubTopic := "/v1/polyhome-ha/host/"+ device.Sn + "/user_id/0/services/"
-
-    model.MqttClient.Publish(mqttPubTopic, 0, false, newReqParams)
-  }
+  model.MqttClient.Publish(mqttPubTopic, 0, false, newReqParams)
 
   newResult, _ := json.Marshal(result)
 

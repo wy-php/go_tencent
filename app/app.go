@@ -63,7 +63,7 @@ func (app *App) Initialize() {
       entityId := newMsg.Data["entity_id"].(string)
       sn := strings.Split(msg.Topic(), "/")[4]
       parentDin, token := "", ""
-      // 设备注册, sn和entityId一致则是网关注册
+      // 设备注册, sn和entityId一致则是网关注册，网关的话就可以直接去获取token，如果是网关下的设备可以直接从redis中取设备，如果redis中过期则重新注册生成
       if sn == entityId {
         token = handler.TxLogin()["token"].(string)
       } else {
@@ -99,8 +99,8 @@ func (app *App) Initialize() {
 }
 
 func (app *App) setRouters() {
-  app.Post("/iotd/ctl/spController/", app.SpController)
-  app.Get("/iotd/device/spGetDeviceStatus/", app.SpGetDeviceStatus)
+  app.Post("/iotd/ctl/spController", app.SpController)
+  app.Get("/iotd/device/spGetDeviceStatus", app.SpGetDeviceStatus)
 }
 
 

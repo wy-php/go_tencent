@@ -3,7 +3,7 @@ echo "deploy..."
 gox -osarch="linux/amd64"
 fuser -cfu tda_linux_amd64
 sleep 2
-scp -r tda_linux_amd64 live@123.57.139.200:/home/live/go-api
+scp -r tda_linux_amd64 live@123.57.139.200:/home/live/go_project/go-api
 #ssh live "/home/live/go-api/pro_linux_amd64"
 #scp -r txApi.go live:/home/live/go-api
 ssh live "/home/live/go-api/deploy"
