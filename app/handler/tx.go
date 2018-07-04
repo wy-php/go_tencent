@@ -100,7 +100,7 @@ func TxLogin() map[string]interface{} {
 }
 
 //用来注册设备的
-func TxDeviceRegister(token string, dType string, parentDin string, sn string, name string) string {
+func TxDeviceRegister(token string, dType string, parentDin string, sn string, name string, types string) string {
 
   log.WithFields(log.Fields{
     "token": token,
@@ -120,12 +120,12 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
     return deviceInfo.Din
   }
 
-
   apiUrl := BaseUrl + "sp/deviceRegister/"
   din := ""
   jsonData := url.Values{}
   jsonData.Set("token", token)
   jsonData.Set("dType", dType)
+  jsonData.Set("type", types)
   jsonData.Set("parentDin", parentDin)
   jsonData.Set("sn", sn)
   jsonData.Set("name", name)
@@ -182,7 +182,7 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
 }
 
 //用来更新设备信息的
-func TxDeviceUpdate(token string, dType string, parentDin string, sn string, name string, cDin string) string {
+func TxDeviceUpdate(token string, dType string, parentDin string, sn string, name string, cDin string, types string) string {
   log.WithFields(log.Fields{
     "token": token,
   }).Info("[TXAPI] Call tx device update api.")
@@ -194,6 +194,7 @@ func TxDeviceUpdate(token string, dType string, parentDin string, sn string, nam
   jsonData.Set("dType", dType)
   jsonData.Set("parentDin", parentDin)
   jsonData.Set("din", cDin)
+  jsonData.Set("type", types)
   jsonData.Set("sn", sn)
   jsonData.Set("name", name)
   response, err := http.PostForm(apiUrl,jsonData)
@@ -302,20 +303,20 @@ func CallTxApi(){
   // 注册设备
   //gateWay := "dc:a9:04:99:09:64"
   gateWay := "601e5c44a4064d0c9b8e4ef49145ee11"
-  din := TxDeviceRegister(token, "20002", "", gateWay, "智能网关")
+  din := TxDeviceRegister(token, "20002", "", gateWay, "智能网关", "2")
   log.Info("din:", din)
 
   token = GetToken(din)
-  lnlightDin := TxDeviceRegister(token, "20003", din, "light.lnlightb453", "智能开关")
+  lnlightDin := TxDeviceRegister(token, "20003", din, "light.lnlightb453", "智能开关", "3")
   log.Info("lnlightDin:", lnlightDin)
 
-  dimlightDin := TxDeviceRegister(token, "20003", din, "light.dimlight53a", "智能开关(调光灯)")
+  dimlightDin := TxDeviceRegister(token, "20003", din, "light.dimlight53a", "智能开关(调光灯)", "3")
   log.Info("dimlightDin:", dimlightDin)
 
-  socketDin := TxDeviceRegister(token, "20004", din, "switch.socket2b17", "智能插座")
+  socketDin := TxDeviceRegister(token, "20004", din, "switch.socket2b17", "智能插座", "3")
   log.Info("socketDin:", socketDin)
 
-  coverDin := TxDeviceRegister(token, "20007", din, "cover.cover32401", "智能窗帘")
+  coverDin := TxDeviceRegister(token, "20007", din, "cover.cover32401", "智能窗帘", "3")
   log.Info("coverDin:", coverDin)
 
   cmd = exec.Command("sleep", "1")
@@ -348,7 +349,7 @@ func CallTxApi(){
   cmdErr = cmd.Start()
 
   // 更新设备
-  din = TxDeviceUpdate(token, "20002", "1000210042", "polyhome-gateway-001", "智能网关2", din)
+  din = TxDeviceUpdate(token, "20002", "1000210042", "polyhome-gateway-001", "智能网关2", din, "2")
   log.Info("after update din:", din)
 
   if cmdErr != nil {

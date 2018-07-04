@@ -25,13 +25,13 @@ import (
 var db = model.DB;
 
 const (
-   AppId             = 17
-   AppKey            = "kIcFF7Cl"
+   AppId             = 22
+   AppKey            = "gGQPKB1h"
    SpAppId           = "6023"
    SpSkey            = "polyhome"
    Name              = "北京博力恒昌科技有限公司"
    Desc              = "一家力图改变您的生活方式的智能家居公司。"
-   Url               = "http://123.57.139.200:9090/iotd/ctl/spController"
+   Url               = "https://qq.ourjujia.com/iotd/ctl/spController"
    RandNum           = 3424901
    RedisKeyPrefix    = "PHA::"
    GateWayTokenKey   = "GATEWAY::TOKEN::"

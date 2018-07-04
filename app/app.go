@@ -81,7 +81,12 @@ func (app *App) Initialize() {
       // 将unicode编码转成utf-8
       name := fmt.Sprint(newMsg.Data["friendly_name"].(string))
       dType := strconv.Itoa(handler.FindDtypeById(entityId, deviceType.(string)))
-      handler.TxDeviceRegister(token, dType, parentDin, entityId, name)
+      // 注册设备类型。1、wifi直连设备  2、网关  3、网关子设备
+      var types string = "3"
+      if (dType == "20002"){
+        types = "2"
+      }
+      handler.TxDeviceRegister(token, dType, parentDin, entityId, name, types)
     default:
       log.Error("[MQTT] topic[%s] error", topicType)
     }
