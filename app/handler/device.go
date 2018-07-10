@@ -109,6 +109,8 @@ func SpController(w http.ResponseWriter, r *http.Request){
 
   log.WithFields(log.Fields{
     "result": string(newResult),
+    "topic": string(mqttPubTopic),
+    "message": string(newReqParams),
   }).Info("return spController api result")
 
   w.Write(newResult)

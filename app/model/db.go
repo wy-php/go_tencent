@@ -18,6 +18,7 @@ const (
   // 设备应答
   MqttAckTopic         = "/v1/polyhome-ha/host/+/dev_into_zigbee/"
   MqttSubTimingTopic  = "/v1/polyhome-ha/host/+/state_change/"
+  MqttSubHeartTopic  = "/v1/polyhome-ha/host/+/heart_beat/"
 )
 
 // 声明相关client全局变量
@@ -87,6 +88,7 @@ func initMqtt(f mqtt.MessageHandler) {
   // MqttClient.Subscribe(MqttSubStaChgTopic, 0, nil)
   MqttClient.Subscribe(MqttSubTimingTopic, 0, nil)
   MqttClient.Subscribe(MqttAckTopic, 2, nil)
+  MqttClient.Subscribe(MqttSubHeartTopic, 2, nil)
 
   log.Info("mqtt connect success.")
 }

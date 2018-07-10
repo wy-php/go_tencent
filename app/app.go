@@ -46,6 +46,7 @@ func (app *App) Initialize() {
     //fmtMsg := bytes.Replace(msg.Payload(), []byte("entity_id"), []byte("entityId"), -1)
     newMsg := new(model.Payload)
     err := json.Unmarshal(msg.Payload(), newMsg)
+    log.Info(newMsg.Data)
     if err != nil {
       log.Error("[MQTT] json unmarshal error", err)
     }
@@ -60,6 +61,10 @@ func (app *App) Initialize() {
         log.Error("[MQTT] The data['entity_id'] is nil!")
       }
     case "dev_into_zigbee":
+      if (newMsg.Data["entity_id"] == nil) {
+        log.Error("[MQTT] The data['entity_id'] is nil!")
+        return
+      }
       entityId := newMsg.Data["entity_id"].(string)
       sn := strings.Split(msg.Topic(), "/")[4]
       parentDin, token := "", ""
@@ -72,6 +77,7 @@ func (app *App) Initialize() {
         parentDin = arrs[0]
         token = handler.GetToken(parentDin)
       }
+      log.Info(newMsg.Data)
       // 多个设备是同一种类型的时候使用
       deviceType := newMsg.Data["device_type"]
       if deviceType == nil {

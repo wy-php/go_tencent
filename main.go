@@ -6,7 +6,6 @@ import (
   _ "fmt"
   _ "encoding/json"
   _ "tda/app/handler"
-  "tda/app/handler"
 )
 
 func main() {
@@ -15,7 +14,7 @@ func main() {
 
   // 调用腾讯接口
   //handler.TxRegisterUri()
-  handler.CallTxApi()
+  //handler.CallTxApi()
 
   app.Run(":9090")
 }

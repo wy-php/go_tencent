@@ -359,9 +359,16 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
     }
   case Switch:
     isOn := data.Data["state"] == "on"
+    metering :=  map[string]interface{}{
+      "totalEnergy": 0,
+      "voltage": 0,
+      "electricity": 0,
+      "power": 0,
+    }
     attrs = map[string]interface{}{
-      "datapointId": SwitchPointId,
-      "click": click,
+      //"datapointId": SwitchPointId,
+      //"click": click,
+      "metering": metering,
       "switch": isOn,
     }
   case Cover:
@@ -370,15 +377,16 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       state = "close"
     }
     attrs = map[string]interface{}{
-      "datapointId": CoverPointId,
-      "click": click,
+      //"datapointId": CoverPointId,
+      //"click": click,
       "action": state,
     }
   case BinarySensor, PolyPirSensor:
     state := data.Data["state"] == "on"
     attrs = map[string]interface{}{
-      "datapointId": BinarySensorPointId,
-      "click": click,
+      //"datapointId": BinarySensorPointId,
+      //"click": click,
+      "low":"false",
       "sensor": state,
     }
   case PolyPanel4:
@@ -395,6 +403,6 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
     "online": online,
     "attributes": msg,
   })
-
+log.Info(msg)
   MessageNotify(token, device.Din, dType, msg)
 }

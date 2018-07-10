@@ -108,6 +108,7 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
     "parentDin": parentDin,
     "sn": sn,
     "name": name,
+    "type": types,
   }).Info("[TXAPI] Call tx device register api.")
 
   // check is register
@@ -136,7 +137,6 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
     }).Fatal("[TXAPI] The HTTP request failed with error")
   } else {
     data, err := ioutil.ReadAll(response.Body)
-	fmt.Printf("%s", data)
     din = formatData(data, "din").(string)
     if err != nil {
       log.Error("[TXAPI] Call register api error: ", err)
@@ -231,7 +231,7 @@ func MessageNotify(token string, din string, dType string, msg string) {
   jsonData.Set("din", din)
   jsonData.Set("dType", dType)
   jsonData.Set("msg", msg)
-  jsonData.Set("timestamp", strconv.Itoa(int(time.Now().Unix() * 1000)))
+  jsonData.Set("timestamp", strconv.Itoa(int(time.Now().Unix())))
   response, err := http.PostForm(apiUrl,jsonData)
 
   if err != nil {
