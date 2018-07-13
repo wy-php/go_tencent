@@ -20,6 +20,7 @@ import (
   _ "github.com/jinzhu/gorm"
   _ "github.com/gorilla/mux"
   log "github.com/sirupsen/logrus"
+  "reflect"
 )
 
 var db = model.DB;
@@ -42,12 +43,14 @@ const (
    Day               = 24 * Hour
    Week              = 7  * Day
    Gateway           = 20002
-   Light             = 20003
    Switch            = 20004
    PolyPanel4        = 20005
    BinarySensor      = 20006
    Cover             = 20007
    PolyPirSensor     = 20008
+   LnLight           = 20011
+   Sensor            = 20015
+   Light             = 20018
    LightPointId      = "1000202"
    SwitchPointId     = "1000204"
    CoverPointId      = "1000207"
@@ -57,6 +60,7 @@ const (
    LightText         = "light"
    SwitchText        = "switch"
    CoverText         = "cover"
+   SensorText        = "sensor"
    BinarySensorText  = "binary_sensor"
    PolyPirSensorText = "polypirsensor"
    PolyPanel4Text    = "polypanel4"
@@ -67,7 +71,9 @@ var Plugins = map[uint64]interface{}{
   Light: LightText,
   Switch: SwitchText,
   Cover: CoverText,
+  Sensor: SensorText,
   BinarySensor: BinarySensorText,
+  LnLight: LightText,
 }
 
 var Plugins1 = map[string]interface{}{
@@ -75,6 +81,7 @@ var Plugins1 = map[string]interface{}{
   SwitchText: Switch,
   CoverText: Cover,
   GatewayText: Gateway,
+  SensorText: Sensor,
   BinarySensorText: BinarySensor,
   PolyPirSensorText: PolyPirSensor,
   PolyPanel4Text: PolyPanel4,
@@ -84,7 +91,13 @@ var loc, _ = time.LoadLocation("Asia/Shanghai")
 
 func FindDtypeById(entityId string, deviceType string) int {
   prefix := strings.Split(entityId, ".")[0]
+  types := strings.Split(entityId, ".")[1]
   dType := Plugins1[prefix]
+
+  //如果是双键智能开关的话其dType就是20011
+  if (prefix == LightText && strings.SplitAfter(types, "lnlight")[0] == "lnlight") {
+    dType = LnLight
+  }
 
   if deviceType == PolyPirSensorText || deviceType == PolyPanel4Text || deviceType == GatewayText {
     dType = Plugins1[deviceType]
@@ -203,16 +216,40 @@ func formatResult(result *model.Result) interface{} {
   delete(result.Cmd, "datapointId")
   delete(result.Cmd, "button")
   switch result.Dtype{
-  case 20003:
+  case 20018:
     if result.Cmd["on"] == true || result.Cmd["on"] == "true" {
       params["service"] = "turn_on"
       snStr := strings.SplitAfter(result.Sn, ".")[1]
+      // 调光开关的。
       if strings.SplitAfter(snStr, "dimlight")[0] == "dimlight" {
-        result.Cmd["brightness"] = result.Cmd["bright"]
+        result.Cmd["brightness"] = result.Cmd["light"].(float64)*2.55
       }
     }
     delete(result.Cmd, "on")
-    delete(result.Cmd, "bright")
+    delete(result.Cmd, "light")
+
+    params["data"] = result.Cmd
+  case 20011:
+
+    log.WithFields(log.Fields{
+      "cmd_key_type": reflect.TypeOf(result.Cmd["key"]),
+      "cmd_key_content": result.Cmd["key"],
+    }).Info("-----------------调试接口----------------")
+
+    flag := result.Cmd["key"].(float64)
+    uint64Flag := uint64(flag)
+
+
+    if uint64Flag == 2 {
+      result.Cmd["entity_id"] = result.Sn[0 : len(result.Sn)-1]+"2"
+    }
+
+    if result.Cmd["on"] == true {
+      params["service"] = "turn_on"
+    }
+    delete(result.Cmd, "on")
+    delete(result.Cmd, "key")
+
     params["data"] = result.Cmd
   case 20004:
     if result.Cmd["switch"] == true {
@@ -340,22 +377,78 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
   attrs := data.Data["attributes"].(map[string]interface{})
   switch device.DType {
   case Light:
+    //brightness := attrs["brightness"].(float64)
+    brightness := attrs["brightness"]
+    if (brightness == nil){
+      brightness = 0.0
+    } else{
+      brightness = brightness.(float64)/2.55
+    }
     isOn := data.Data["state"] == "on"
     // features 0 表示普通灯 1 表示调光灯
     //if (data.Data["state"] == "off" && attrs["supported_features"] == 1.0) {
-    if attrs["brightness"] == nil{
-      attrs["brightness"] = 0.0
-    }
-    status := [1]map[string]interface{}{}
-    status[0] = map[string]interface{}{
-      "button": 1,
-      "on": isOn,
-      "bright": attrs["brightness"].(float64),
-    }
+    //if attrs["brightness"] == nil{
+    //  attrs["brightness"] = 0.0
+    //}
     attrs = map[string]interface{}{
-      "datapointId": LightPointId,
+      //"datapointId": LightPointId,
       "click": click,
-      "status": status,
+      "on": isOn,
+      "lightUp": false,
+      "lightDown": false,
+      "light": brightness,
+    }
+  //双键智能开关
+  case LnLight:
+    if (device.Sn == ""){
+      log.Error("this data not find")
+      return
+    }
+    light_location := device.Sn[len(device.Sn)-1 : len(device.Sn)]
+    other_location := "1"
+    if (light_location == "1"){
+      other_location = "2"
+    }
+    prefix_info := device.Sn[0 : len(device.Sn)-1]
+    //获取到另外的键的sn号
+    other_light_sn := prefix_info + other_location
+    //根据另外的那个键的sn号得到其状态信息
+    other_light_info := model.Device{}
+    _ = model.DB.First(&other_light_info, model.Device{Sn: other_light_sn, ParentDin: dev.ParentDin})
+
+    if(other_light_info.State == ""){
+      other_light_info.State = "off"
+    }
+    //定义一个数组包裹着集合的数据结构
+    var g_employees = []interface{}{}
+
+    on_status1 := data.Data["state"].(string)
+    on_status2 := other_light_info.State
+    if (light_location == "2"){
+      on_status2 = data.Data["state"].(string)
+      on_status1 = other_light_info.State
+      device.Din = other_light_info.Din
+    }
+
+    status1 := false
+    status2 := false
+    if(on_status1 == "on"){
+      status1 = true
+    }
+    if(on_status2 == "on"){
+      status2 = true
+    }
+    map1 := map[string]interface{}{"key": 1, "on": status1}
+    map2 := map[string]interface{}{"key": 2, "on": status2}
+
+    g_employees = append(g_employees, map1)
+    g_employees = append(g_employees, map2)
+
+    //因为腾讯那里是双键智能开关也是只上报一个din的，所以这里就是只上传第一个din即可
+
+    attrs = map[string]interface{}{
+      "status": g_employees,
+      "click": click,
     }
   case Switch:
     isOn := data.Data["state"] == "on"
@@ -386,7 +479,7 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
     attrs = map[string]interface{}{
       //"datapointId": BinarySensorPointId,
       //"click": click,
-      "low":"false",
+      "low": false,
       "sensor": state,
     }
   case PolyPanel4:
@@ -403,6 +496,5 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
     "online": online,
     "attributes": msg,
   })
-log.Info(msg)
   MessageNotify(token, device.Din, dType, msg)
 }

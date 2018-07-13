@@ -90,6 +90,9 @@ func SpController(w http.ResponseWriter, r *http.Request){
   //
   //  model.MqttClient.Publish(mqttPubTopic, 0, false, newReqParams)
   //}
+  log.WithFields(log.Fields{
+    "result": result1,
+  }).Info("----------调试专用-------------")
 
   // 整理传给主机所需要的数据格式
   reqParams := formatResult(result1)
