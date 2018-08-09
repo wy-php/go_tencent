@@ -20,7 +20,6 @@ import (
   _ "github.com/jinzhu/gorm"
   _ "github.com/gorilla/mux"
   log "github.com/sirupsen/logrus"
-  "reflect"
 )
 
 var db = model.DB;
@@ -47,10 +46,16 @@ const (
    PolyPanel4        = 20005
    BinarySensor      = 20006
    Cover             = 20007
-   PolyPirSensor     = 20008
+   //PolyPirSensor     = 20008
+   PolyIoSensor      = 20008
+   LnLight3          = 20010
    LnLight           = 20011
+   LnLight1          = 20012
    Sensor            = 20015
+   Water             = 20016
+   Lock              = 20017
    Light             = 20018
+   PolySmokeSensor   = 20019
    LightPointId      = "1000202"
    SwitchPointId     = "1000204"
    CoverPointId      = "1000207"
@@ -59,12 +64,16 @@ const (
    GatewayText       = "gateway"
    LightText         = "light"
    SwitchText        = "switch"
+   LockText          = "lock"
    CoverText         = "cover"
    SensorText        = "sensor"
+   WaterText         = "water"
    BinarySensorText  = "binary_sensor"
    PolyPirSensorText = "polypirsensor"
+   PolyIoSensorText  = "polyiosensor"
    PolyPanel4Text    = "polypanel4"
    Offline           = "unavailable"
+   PolySmokeSensorText = "polysmokesensor"
 )
 
 var Plugins = map[uint64]interface{}{
@@ -74,6 +83,11 @@ var Plugins = map[uint64]interface{}{
   Sensor: SensorText,
   BinarySensor: BinarySensorText,
   LnLight: LightText,
+  LnLight1: LightText,
+  LnLight3: LightText,
+  PolyIoSensor: PolyIoSensorText,
+  Lock: LockText,
+  PolySmokeSensor: PolySmokeSensorText,
 }
 
 var Plugins1 = map[string]interface{}{
@@ -83,20 +97,33 @@ var Plugins1 = map[string]interface{}{
   GatewayText: Gateway,
   SensorText: Sensor,
   BinarySensorText: BinarySensor,
-  PolyPirSensorText: PolyPirSensor,
+  //PolyPirSensorText: PolyPirSensor,
   PolyPanel4Text: PolyPanel4,
+  PolyIoSensorText: PolyIoSensor,
+  LockText: Lock,
+  PolySmokeSensorText: PolySmokeSensor,
 }
 
 var loc, _ = time.LoadLocation("Asia/Shanghai")
 
 func FindDtypeById(entityId string, deviceType string) int {
-  prefix := strings.Split(entityId, ".")[0]
-  types := strings.Split(entityId, ".")[1]
+  prefix := strings.Split(entityId, ".")[1]
   dType := Plugins1[prefix]
 
   //如果是双键智能开关的话其dType就是20011
-  if (prefix == LightText && strings.SplitAfter(types, "lnlight")[0] == "lnlight") {
+  if (prefix == LightText && deviceType == "polylnlight2") {
     dType = LnLight
+  } else if (prefix == LightText && deviceType == "polylnlight3"){
+    dType = LnLight3
+  }else if (prefix == LightText && deviceType == "polylnlight"){
+    dType = LnLight1
+  }
+
+  // io类又分了好几种
+  if (prefix == BinarySensorText && deviceType == "polyiosensor") {
+    dType = PolyIoSensor
+  } else if (prefix == BinarySensorText && deviceType == "polysmokesensor"){
+    dType = PolySmokeSensor
   }
 
   if deviceType == PolyPirSensorText || deviceType == PolyPanel4Text || deviceType == GatewayText {
@@ -214,9 +241,9 @@ func formatResult(result *model.Result) interface{} {
   params["service"] = "turn_off"
   result.Cmd["entity_id"] = result.Sn
   delete(result.Cmd, "datapointId")
-  delete(result.Cmd, "button")
   switch result.Dtype{
   case 20018:
+    delete(result.Cmd, "button")
     if result.Cmd["on"] == true || result.Cmd["on"] == "true" {
       params["service"] = "turn_on"
       snStr := strings.SplitAfter(result.Sn, ".")[1]
@@ -230,12 +257,6 @@ func formatResult(result *model.Result) interface{} {
 
     params["data"] = result.Cmd
   case 20011:
-
-    log.WithFields(log.Fields{
-      "cmd_key_type": reflect.TypeOf(result.Cmd["key"]),
-      "cmd_key_content": result.Cmd["key"],
-    }).Info("-----------------调试接口----------------")
-
     flag := result.Cmd["key"].(float64)
     uint64Flag := uint64(flag)
 
@@ -250,6 +271,29 @@ func formatResult(result *model.Result) interface{} {
     delete(result.Cmd, "on")
     delete(result.Cmd, "key")
 
+    params["data"] = result.Cmd
+  case 20010:
+    flag := result.Cmd["button"].(float64)
+    uint64Flag := uint64(flag)
+
+    if (uint64Flag == 2) {
+      result.Cmd["entity_id"] = result.Sn[0 : len(result.Sn)-1]+"2"
+    }else if(uint64Flag == 3) {
+      result.Cmd["entity_id"] = result.Sn[0 : len(result.Sn)-1]+"3"
+    }
+
+    if result.Cmd["on"] == true {
+      params["service"] = "turn_on"
+    }
+    delete(result.Cmd, "on")
+    delete(result.Cmd, "button")
+
+    params["data"] = result.Cmd
+  case 20012:
+    if result.Cmd["on"] == true {
+      params["service"] = "turn_on"
+    }
+    delete(result.Cmd, "on")
     params["data"] = result.Cmd
   case 20004:
     if result.Cmd["switch"] == true {
@@ -357,6 +401,7 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
     log.WithFields(log.Fields{
       "entityId": entityId,
       "gateWaySn": gateWaySn,
+      "ParentDin": dev.ParentDin,
     }).Error("[MQTT] Device info is not exists!")
     return
   }
@@ -399,6 +444,12 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       "light": brightness,
     }
   //双键智能开关
+  case LnLight1:
+    isOn := data.Data["state"] == "on"
+    attrs = map[string]interface{}{
+      "on": isOn,
+    }
+    //双键智能开关
   case LnLight:
     if (device.Sn == ""){
       log.Error("this data not find")
@@ -450,6 +501,71 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       "status": g_employees,
       "click": click,
     }
+  case LnLight3:
+    if (device.Sn == ""){
+      log.Error("this data not find")
+      return
+    }
+    light_location := device.Sn[len(device.Sn)-1 : len(device.Sn)]
+    prefix_info := device.Sn[0 : len(device.Sn)-1]
+
+    //获取到另外的键的sn号
+    key1_sn := prefix_info + "1" //一键的
+    key2_sn := prefix_info + "2" //二键的
+    key3_sn := prefix_info + "3" //三键的
+    key1_info := model.Device{}
+    key2_info := model.Device{}
+    key3_info := model.Device{}
+    _ = model.DB.First(&key1_info, model.Device{Sn: key1_sn, ParentDin: dev.ParentDin})
+    _ = model.DB.First(&key2_info, model.Device{Sn: key2_sn, ParentDin: dev.ParentDin})
+    _ = model.DB.First(&key3_info, model.Device{Sn: key3_sn, ParentDin: dev.ParentDin})
+
+    device.Din = key1_info.Din //上报到腾讯那里的din永远都是key1的din
+
+    key1_status := key1_info.State
+    key1_light := false
+    if ( key1_status == "on"){
+      key1_light = true
+    }
+    key2_status := key2_info.State
+    key2_light := false
+    if ( key2_status == "on"){
+      key2_light = true
+    }
+    key3_status := key3_info.State
+    key3_light := false
+    if ( key3_status == "on"){
+      key3_light = true
+    }
+
+    present_light := data.Data["state"].(string)
+    present_light_status := false
+    if (present_light == "on"){
+      present_light_status = true
+    }
+
+    if (light_location == "1"){
+      key1_light = present_light_status
+    } else if(light_location == "2"){
+      key2_light = present_light_status
+    }else if(light_location == "3"){
+      key3_light = present_light_status
+    }
+
+    //定义一个数组包裹着集合的数据结构
+    var g_employees = []interface{}{}
+    map1 := map[string]interface{}{"button": 1, "on": key1_light}
+    map2 := map[string]interface{}{"button": 2, "on": key2_light}
+    map3 := map[string]interface{}{"button": 3, "on": key3_light}
+
+    g_employees = append(g_employees, map1)
+    g_employees = append(g_employees, map2)
+    g_employees = append(g_employees, map3)
+
+    attrs = map[string]interface{}{
+      "status": g_employees,
+      "click": click,
+    }
   case Switch:
     isOn := data.Data["state"] == "on"
     metering :=  map[string]interface{}{
@@ -474,7 +590,73 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       //"click": click,
       "action": state,
     }
-  case BinarySensor, PolyPirSensor:
+  case Sensor:
+    if (device.Sn == ""){
+      log.Error("this data not find")
+      return
+    }
+    light_location := device.Sn[len(device.Sn)-1 : len(device.Sn)]
+    prefix_info := device.Sn[0 : len(device.Sn)-1]
+
+    //获取到另外的键的sn号
+    temperature_sn := prefix_info + "1" //温度的
+    humidity_sn := prefix_info + "2" //湿度的
+    light_sn := prefix_info + "3" //亮度的
+    temperature := 0.0
+    humidity := 0.0
+    light := 0.0
+    temperature_info := model.Device{}
+    humidity_info := model.Device{}
+    light_info := model.Device{}
+    _ = model.DB.First(&temperature_info, model.Device{Sn: temperature_sn, ParentDin: dev.ParentDin})
+    _ = model.DB.First(&humidity_info, model.Device{Sn: humidity_sn, ParentDin: dev.ParentDin})
+    _ = model.DB.First(&light_info, model.Device{Sn: light_sn, ParentDin: dev.ParentDin})
+
+    device.Din = temperature_info.Din //上报到腾讯那里的din永远都是温度的
+    myMap := make(map[string]float64)
+    temperature_content := temperature_info.Attributes
+    if (temperature_content != ""){
+      json.Unmarshal([]byte(temperature_content),&myMap)
+      temperature = myMap["temperature"]
+    }
+    humidity_content := humidity_info.Attributes
+    if (humidity_content != ""){
+      json.Unmarshal([]byte(humidity_content),&myMap)
+      humidity = myMap["humidity"]
+    }
+    light_content := light_info.Attributes
+    if (light_content != ""){
+      json.Unmarshal([]byte(light_content),&myMap)
+      light = myMap["light"]
+    }
+
+    num_str := data.Data["state"].(string)
+    num,err := strconv.ParseFloat(num_str, 64)
+    if err != nil{
+      log.Error(err)
+    }
+    if (light_location == "1"){
+      temperature = num
+    } else if(light_location == "2"){
+      humidity = num
+    }else if(light_location == "3"){
+      light = num
+    }
+
+    attrs = map[string]interface{}{
+      "temperature": temperature,
+      "humidity": humidity,
+      "light": light,
+    }
+  case BinarySensor:
+    state := data.Data["state"] == "off"
+    attrs = map[string]interface{}{
+      //"datapointId": BinarySensorPointId,
+      //"click": click,
+      "low": false,
+      "sensor": state,
+    }
+  case PolyIoSensor:
     state := data.Data["state"] == "on"
     attrs = map[string]interface{}{
       //"datapointId": BinarySensorPointId,
@@ -482,10 +664,40 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       "low": false,
       "sensor": state,
     }
-  case PolyPanel4:
+  case Lock:
+    door_state := ""
+    if ( online == true){
+      door_state = attrs["type"].(string)
+    }
+    state := data.Data["state"] == "unlocked"
+    door_alarm := false
+    low := false
+    if (door_state == "trespass" || door_state == "prylock"){
+      door_alarm = true
+    } else if (door_state == "lowpower"){
+      low = true
+    }
     attrs = map[string]interface{}{
-      "datapointId": PolyPanel4PointId,
-      "button": attrs["button"],
+      //"datapointId": BinarySensorPointId,
+      "on": state,
+      "low": low,
+      "lock_type": 0,
+      "door_state": door_alarm,
+    }
+  case PolyPanel4:
+    a := attrs["button"].(string)
+    b,error := strconv.Atoi(a)
+    if error != nil{
+      fmt.Println("字符串转换成整数失败")
+    }
+    attrs = map[string]interface{}{
+      "button": b,
+    }
+  case PolySmokeSensor:
+    state := data.Data["state"] == "on"
+    attrs = map[string]interface{}{
+      "alarm": state,
+      "low": false,
     }
   }
 

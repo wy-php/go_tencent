@@ -20,7 +20,9 @@ func SpController(w http.ResponseWriter, r *http.Request){
   }).Info("Call spContoller api")
 
   token := r.PostFormValue("token")
-  sn := r.PostFormValue("sn")
+  sn_str := r.PostFormValue("sn")
+  var list []string = strings.Split(sn_str,".")[1:]
+  sn := strings.Join(list,".")
   din := r.PostFormValue("din")
   dType,_ := strconv.ParseUint(r.PostFormValue("dType"), 10, 64)
   cmds := r.PostFormValue("cmd")

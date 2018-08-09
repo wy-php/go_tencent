@@ -139,12 +139,15 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
 
   //因为和腾讯那里的协议的原因，这里需要调整双键智能开关的逻辑
   new_sn := ""
-  if (dType == "20011"){
+  if (dType == "20011" || dType == "20015" || dType == "20010"){
     num := len(sn)
     location_num := sn[num-1 : num]
     prefix_info := sn[0 : num-1]
     //如果后缀是2的话，也把其改成1的。因为腾讯那里协议的原因，双键智能开关只接受一个din的注册
     if (location_num == "2"){
+      new_sn = prefix_info+"1"
+      jsonData.Set("sn", new_sn)
+    }else if (location_num == "3"){
       new_sn = prefix_info+"1"
       jsonData.Set("sn", new_sn)
     }

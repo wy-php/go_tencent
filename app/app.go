@@ -65,11 +65,12 @@ func (app *App) Initialize() {
         log.Error("[MQTT] The data['entity_id'] is nil!")
         return
       }
-      entityId := newMsg.Data["entity_id"].(string)
       sn := strings.Split(msg.Topic(), "/")[4]
+      e_id := newMsg.Data["entity_id"].(string)
+      entityId := sn + "."+e_id
       parentDin, token := "", ""
       // 设备注册, sn和entityId一致则是网关注册，网关的话就可以直接去获取token，如果是网关下的设备可以直接从redis中取设备，如果redis中过期则重新注册生成
-      if sn == entityId {
+      if sn == e_id {
         token = handler.TxLogin()["token"].(string)
       } else {
         var arrs []string
@@ -91,6 +92,10 @@ func (app *App) Initialize() {
       var types string = "3"
       if (dType == "20002"){
         types = "2"
+      }
+      // 如果是网关设备的话，就把entityId的值等于sn的值，否则它就是sn+"."+sn了
+      if(sn == e_id) {
+        entityId = sn
       }
       handler.TxDeviceRegister(token, dType, parentDin, entityId, name, types)
     default:
