@@ -56,6 +56,7 @@ const (
    Lock              = 20017
    Light             = 20018
    PolySmokeSensor   = 20019
+   PolyVapourSensor  = 20020
    LightPointId      = "1000202"
    SwitchPointId     = "1000204"
    CoverPointId      = "1000207"
@@ -694,6 +695,18 @@ func SaveDeviceInfo(entityId string, gateWaySn string, data *model.Payload) {
       "button": b,
     }
   case PolySmokeSensor:
+    state := data.Data["state"] == "on"
+    attrs = map[string]interface{}{
+      "alarm": state,
+      "low": false,
+    }
+  case Water:
+    state := data.Data["state"] == "on"
+    attrs = map[string]interface{}{
+      "alarm": state,
+      "low": false,
+    }
+  case PolyVapourSensor:
     state := data.Data["state"] == "on"
     attrs = map[string]interface{}{
       "alarm": state,

@@ -51,12 +51,15 @@ func (app *App) Initialize() {
       log.Error("[MQTT] json unmarshal error", err)
     }
     topicType := strings.Split(string(msg.Topic()), "/")[5]
+    sn := strings.Split(msg.Topic(), "/")[4]
     switch topicType {
     case "state_change", "heart_beat":
-      entityId := newMsg.Data["entity_id"]
-      if entityId != nil {
+      //entityId := newMsg.Data["entity_id"]
+      e_id := newMsg.Data["entity_id"].(string)
+      entityId := sn + "."+e_id
+      if e_id != "" {
         sn := strings.Split(msg.Topic(), "/")[4]
-        handler.SaveDeviceInfo(entityId.(string), sn, newMsg)
+        handler.SaveDeviceInfo(entityId, sn, newMsg)
       } else {
         log.Error("[MQTT] The data['entity_id'] is nil!")
       }
@@ -65,7 +68,6 @@ func (app *App) Initialize() {
         log.Error("[MQTT] The data['entity_id'] is nil!")
         return
       }
-      sn := strings.Split(msg.Topic(), "/")[4]
       e_id := newMsg.Data["entity_id"].(string)
       entityId := sn + "."+e_id
       parentDin, token := "", ""
