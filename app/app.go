@@ -119,6 +119,8 @@ func (app *App) Initialize() {
 func (app *App) setRouters() {
   app.Post("/iotd/ctl/spController", app.SpController)
   app.Get("/iotd/device/spGetDeviceStatus", app.SpGetDeviceStatus)
+  app.Get("/", app.Index)
+  app.Post("/", app.IndexPost)
 }
 
 
@@ -138,6 +140,14 @@ func (app *App) SpController(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) SpGetDeviceStatus(w http.ResponseWriter, r *http.Request) {
   handler.SpGetDeviceStatus(w, r)
+}
+
+func (app *App) Index(w http.ResponseWriter, r *http.Request) {
+  handler.Index(w, r)
+}
+
+func (app *App) IndexPost(w http.ResponseWriter, r *http.Request) {
+  handler.IndexPost(w, r)
 }
 
 func (app *App) Run(host string) {

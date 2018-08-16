@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style type="text/css">
+        .par{
+            display: block;
+            width: 400px;
+            margin: 0 auto;
+            position: relative;
+            top: 20px;
+        }
+        h1{
+            text-align:center
+        }
+        .sub{
+            position: relative;
+            display: inline-block;
+            background: #D0EEFF;
+            border: 1px solid #99D3F5;
+            border-radius: 4px;
+            padding: 4px 12px;
+            overflow: hidden;
+            color: #1E88C7;
+            text-decoration: none;
+            text-indent: 0;
+            line-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>IO类设备类型修改</h1>
+    <div class="par">
+        <p>主机sn：<input type="text" name="main_sn" style="width: 280px"></p>
+        <p>设备sn：<input type="text" name="device_sn" style="width: 280px"></p>
+        <p>要更改的类型：
+            <input type="radio" name="type" value="20016" checked> 溢水报警器
+            <input type="radio" name="type" value="20020"> 燃气报警器
+        </p>
+        <p>操作密码：<input type="password" name="password"></p>
+        <input class="sub" type="button" value="点击提交更新" onclick="sub()">
+        <p><div id="prompt_content" style="display: none; color: red">看不见我吧！</div></p>
+    </div>
+</body>
+    <script type="text/javascript">
+        function sub(){
+            var inp = document.getElementsByTagName('input');
+            var obj = document.getElementsByName("type");
+            var prompt_content = document.getElementById("prompt_content");
+            console.log(obj);
+            for(var i=0; i<obj.length; i ++){
+                if(obj[i].checked){
+                    var type = obj[i].value;
+                    break
+                }
+            }
+
+            var xhr = new XMLHttpRequest();
+            //要post提交的数据
+            var data = 'main_sn='+inp[0].value+'&device_sn='+inp[1].value+'&type='+type+'&password='+inp[4].value;
+            console.log(data)
+            xhr.open('post','/',true);
+            //请求头必须要设置
+            xhr.setRequestHeader('Content-type','application/x-www-form-urlencoded');
+            xhr.send(data);//发送数据到url中
+            xhr.onreadystatechange = function(){
+                if(this.readyState == 4){
+                    console.log(this.responseText);
+                    var content = JSON.parse(this.responseText);
+                    var device_type = content.device_types;
+                    if (device_type == "20016") {
+                        var device_name = "溢水报警器"
+                    } else if (device_type == "20020") {
+                        var device_name = "燃气报警器"
+                    }
+                    if (content.code == 200){
+                        prompt_content.style.display="inline";
+                        prompt_content.innerHTML = "该设备已经更新为<span style='color: green'>" + device_name + "</span>设备成功";
+                        // alert("该设备已经更新为" + device_name + "设备成功");
+                    } else if (content.code == 201) {
+                        prompt_content.style.display="inline";
+                        prompt_content.innerHTML = "操作密码错误！";
+                        // alert("操作密码错误！");
+                    } else if (content.code == 202) {
+                        prompt_content.style.display="inline";
+                        prompt_content.innerHTML = "该设备不存在！";
+                        // alert("该设备不存在");
+                    } else if (content.code == 203) {
+                        prompt_content.style.display="inline";
+                        prompt_content.innerHTML = "该设备已经在<span style='color: green'>" + device_name + "</span>类型中了";
+                        // alert("该设备已经在" + device_name + "类型中了");
+                    }
+                    // location.reload()
+                }
+            }
+        }
+    </script>
+</html>

@@ -2,6 +2,7 @@ package handler
 
 import (
   "tda/app/model"
+  "html/template"
   "encoding/json"
   "net/http"
   "strconv"
@@ -9,6 +10,7 @@ import (
   "strings"
 
   log "github.com/sirupsen/logrus"
+  "fmt"
 )
 
 func SpController(w http.ResponseWriter, r *http.Request){
@@ -187,4 +189,113 @@ func SpGetDeviceStatus(w http.ResponseWriter, r *http.Request) {
 
   w.Write(newResult)
 
+}
+
+func Index(w http.ResponseWriter, r *http.Request){
+  type Todo struct {
+    Task string
+    Done bool
+  }
+  //template.ParseFiles("app/views/index.html")
+  //todos := []Todo{
+  //  {"Learn Go", true},
+  //  {"Read Go Web Examples", true},
+  //  {"Create a web app in Go", false},
+  //}
+
+  tmpl := template.Must(template.ParseFiles("app/views/index.html"))
+  tmpl.Execute(w,  struct{}{})
+}
+
+
+func IndexPost(w http.ResponseWriter, r *http.Request){
+
+  r.ParseForm()
+  check_password := "polyhometencent"
+  main_sn := r.PostFormValue("main_sn")
+  device_sn := r.PostFormValue("device_sn")
+  types := r.PostFormValue("type")
+  password := r.PostFormValue("password")
+
+  entityId := main_sn + "." + device_sn
+
+  fmt.Println("main_sn is: ", main_sn)
+  fmt.Println("device_sn is: ", device_sn)
+  fmt.Println("types is: ", types)
+  fmt.Println("password is: ", password)
+
+  device := model.Device{}
+
+  result := map[string]interface{}{
+    "code": 200,
+    "device_types": types,
+  }
+
+  _ = model.DB.First(&device, model.Device{Sn: entityId})
+
+  log.WithFields(log.Fields{
+    "device": device,
+    "Sn": entityId,
+    "ParentDin": main_sn,
+  }).Info("数据库信息")
+
+  //验证密码
+  if (check_password != password){
+    result = map[string]interface{}{
+      "code": 201,
+      "device_types": types,
+    }
+  }
+
+  //数据库中存在性验证
+  if (model.Device{}) == device {
+    log.WithFields(log.Fields{
+      "entityId": entityId,
+      "ParentDin": main_sn,
+    }).Error("[MQTT] Device info is not exists!")
+    result = map[string]interface{}{
+      "code": 202,
+      "device_types": types,
+    }
+  }
+
+  //如果数据存在并且dtyp又是一样的话，就不进行验证了。
+  dType := strconv.Itoa(int(device.DType))
+  if (dType == types){
+    result = map[string]interface{}{
+      "code": 203,
+      "device_types": types,
+    }
+  }
+
+  log.WithFields(log.Fields{
+    "result": result,
+  }).Info("返回的数据信息")
+
+  //如果确定是正常的更新的话，就会更新本地数据库中的dtype字段，以及请求腾讯那里的接口更新腾讯那里的该字段。
+  if (result["code"] == 200) {
+    type_int,err:=strconv.Atoi(types)
+    if err != nil {
+      panic(err)
+    }
+    res := model.DB.Debug().Model(&device).Updates(map[string]interface{}{
+      "d_type": type_int,
+      //"updated_at": time.Now().Format("2006-01-02 15:04:05"),
+    })
+
+    if res.Error != nil {
+      log.WithFields(log.Fields{
+        "error_content": res.Error,
+        "d_type": types,
+        "device": device,
+      }).Info("更新数据库错误")
+    }
+
+    token := GetToken(device.ParentDin)
+    TxDeviceUpdate(token, types, device.ParentDin, device.Sn, device.Name, device.Din, "3")
+  }
+
+  //应答给请求。
+  newResult, _ := json.Marshal(result)
+  w.Write(newResult)
 }
