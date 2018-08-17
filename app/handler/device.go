@@ -216,6 +216,11 @@ func IndexPost(w http.ResponseWriter, r *http.Request){
   device_sn := r.PostFormValue("device_sn")
   types := r.PostFormValue("type")
   password := r.PostFormValue("password")
+  name := "溢水报警器"
+
+  if (types == "20020") {
+    name = "燃气报警器"
+  }
 
   entityId := main_sn + "." + device_sn
 
@@ -280,6 +285,7 @@ func IndexPost(w http.ResponseWriter, r *http.Request){
     }
     res := model.DB.Debug().Model(&device).Updates(map[string]interface{}{
       "d_type": type_int,
+      "name" : name,
       //"updated_at": time.Now().Format("2006-01-02 15:04:05"),
     })
 
@@ -292,7 +298,7 @@ func IndexPost(w http.ResponseWriter, r *http.Request){
     }
 
     token := GetToken(device.ParentDin)
-    TxDeviceUpdate(token, types, device.ParentDin, device.Sn, device.Name, device.Din, "3")
+    TxDeviceUpdate(token, types, device.ParentDin, device.Sn, name, device.Din, "3")
   }
 
   //应答给请求。

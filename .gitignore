@@ -6,3 +6,4 @@ config.json
 dump.rdb
 
 tda
+tda_linux_amd64

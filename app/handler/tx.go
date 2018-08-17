@@ -151,6 +151,8 @@ func TxDeviceRegister(token string, dType string, parentDin string, sn string, n
       new_sn = prefix_info+"1"
       jsonData.Set("sn", new_sn)
     }
+  } else if (dType == "20008") {
+    name = "红外人体感应"
   }
 
   log.WithFields(log.Fields{
