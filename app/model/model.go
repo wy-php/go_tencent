@@ -40,7 +40,7 @@ type State struct {
 type Result struct {
   Token      string `json: "token"`
   Din        string `json: "din"`
-  Dtype      uint64 `json: "dType"`
+  Dtype      uint64 `json: "deviceType"`
   //Plugin     string `json:"plugin"`
   ParentDin  string `json: "parentDin"`
   Sn         string `json:"sn"`
