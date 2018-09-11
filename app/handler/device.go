@@ -26,7 +26,7 @@ func SpController(w http.ResponseWriter, r *http.Request){
   var list []string = strings.Split(sn_str,".")[1:]
   sn := strings.Join(list,".")
   din := r.PostFormValue("din")
-  dType,_ := strconv.ParseUint(r.PostFormValue("dType"), 10, 64)
+  dType,_ := strconv.ParseUint(r.PostFormValue("deviceType"), 10, 64)
   cmds := r.PostFormValue("cmd")
   timestamp,_ := strconv.ParseUint(r.PostFormValue("timestamp"), 10, 64)
   parentDin := r.PostFormValue("parentDin")
